@@ -12,8 +12,7 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
   - Custom/OpenAI-compatible endpoints
 - **Theme-Aware UI**: Automatically matches Alimail's color theme (8 themes supported)
 - **Toolbar Integration**: AI button appears directly in Alimail's compose toolbar
-- **2-Column Layout**: View original email and compose reply side by side
-- **One-Click Insert**: Insert generated reply directly into the email body
+- **Tabbed Interface**: Two modes for reply generation
 - **Multi-Language Support**: Traditional Chinese, English, Portuguese, or Mixed
 - **Tone Options**: Professional, Friendly, Concise, or Detailed
 - **Privacy**: Your API key is stored locally in Tampermonkey only
@@ -69,19 +68,33 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 
 1. Open Alimail Webmail and click "Reply" on any email
 2. Click the **AI** button in the toolbar (next to the subscript button)
-3. The popup will appear with 2 columns:
-   - **Left column**: Original email (auto-extracted) and your key points input
-   - **Right column**: Generated reply
-4. Enter your bullet points in the text area:
+3. The popup will appear with two tabs:
+
+### Tab 1: Custom Reply
+A 2-column layout for personalized replies:
+- **Left column**: Original email (auto-extracted) and your key points input
+- **Right column**: Generated reply
+
+Steps:
+1. Enter your bullet points in the text area:
    ```
    - Apologize for the delay
    - Request additional documents
    - Meeting is scheduled for Friday at 3pm
    ```
-5. Select your preferred **Tone** (Professional/Friendly/Concise/Detailed)
-6. Select **Language** (Traditional Chinese/English/Portuguese/Mixed)
-7. Click **Generate Reply**
-8. Click **Insert to Email** to add directly to the compose area, or **Copy** to clipboard
+2. Select your preferred **Tone** (Concise/Friendly/Professional/Detailed)
+3. Select **Language** (Traditional Chinese/English/Portuguese/Mixed)
+4. Click **Generate Reply**
+5. Click **Insert to Email** to add directly to the compose area, or **Copy** to clipboard
+
+### Tab 2: Smart Suggestions
+AI-generated context-aware reply suggestions:
+- Automatically analyzes the email content
+- Generates 9 reply options organized by attitude:
+  - **Neutral** (No Decision): 3 options (Concise, Friendly, Professional)
+  - **Positive** (Will Do/Accept): 3 options (Concise, Friendly, Professional)
+  - **Negative** (Won't Do/Decline): 3 options (Concise, Friendly, Professional)
+- Click any suggestion to insert directly into the email body
 
 ## Troubleshooting
 

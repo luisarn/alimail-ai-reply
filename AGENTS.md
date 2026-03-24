@@ -51,6 +51,7 @@ This is a **Tampermonkey userscript** that adds AI-powered email reply generatio
    - Default settings for providers, models, temperature, max tokens
    - Prompt templates with variable substitution (`{{TONE_INSTRUCTION}}`, etc.)
    - Provider definitions (OpenAI, Gemini, Anthropic, Custom)
+   - Tone and language instruction templates
 
 2. **Theme System (`THEMES`)**
    - 8 color themes matching Alimail's UI
@@ -59,9 +60,10 @@ This is a **Tampermonkey userscript** that adds AI-powered email reply generatio
 3. **Settings Manager (`Settings`)**
    - Wrapper around Tampermonkey's storage API
    - Get/set individual keys or bulk save all settings
+   - Supports prompt template customization with reset button
 
 4. **UI Components**
-   - `createOverlay()` - Main 2-column reply generation dialog
+   - `createOverlay()` - Main dialog with tabbed interface
    - `createSettingsOverlay()` - Configuration dialog
    - `createToolbarButton()` - Injects AI button into Alimail toolbar
    - `applyTheme()` - Applies detected theme colors to UI elements
@@ -79,6 +81,25 @@ This is a **Tampermonkey userscript** that adds AI-powered email reply generatio
    - Locates the compose area (iframe or contenteditable)
    - Inserts generated text at cursor position
 
+### Tabbed Interface
+
+The main overlay features two tabs:
+
+#### Tab 1: Custom Reply (`#tab-custom`)
+- **Layout**: 2-column side-by-side
+- **Left Column**: Original email display + key points input + tone/language selectors
+- **Right Column**: Generated reply display with Copy/Insert buttons
+- **Function**: `generateReply()` - Builds prompt from user input and generates reply
+
+#### Tab 2: Smart Suggestions (`#tab-smart`)
+- **Layout**: Single centered column
+- **Content**: Auto-generated context-aware reply suggestions
+- **Categories** (displayed in order):
+  1. **Neutral** (No Decision) - 3 suggestions (Concise, Friendly, Professional tones)
+  2. **Positive** (Will Do/Accept) - 3 suggestions (Concise, Friendly, Professional tones)
+  3. **Negative** (Won't Do/Decline) - 3 suggestions (Concise, Friendly, Professional tones)
+- **Function**: `generateSmartSuggestions()` - Analyzes email and generates 9 categorized suggestions
+
 ## Key Development Conventions
 
 ### Code Style
@@ -93,13 +114,17 @@ All custom elements use the `alimail-` prefix to avoid conflicts:
 - `#alimail-reply-overlay` - Main dialog
 - `#alimail-settings-overlay` - Settings dialog
 - `#alimail-ai-toolbar-btn` - Toolbar button
-- `#alimail-original-text` - Original email display
+- `#tab-custom` - Custom Reply tab panel
+- `#tab-smart` - Smart Suggestions tab panel
+- `#alimail-original-text` - Original email display (Custom tab)
 - `#alimail-user-input` - User key points input
 - `#alimail-result-container` - Generated reply display
+- `#alimail-suggestions-container` - Smart suggestions list
 
 ### CSS Naming
 - All CSS classes use the `alimail-` prefix
 - BEM-like naming: `.alimail-button`, `.alimail-column-header`
+- Tab-specific styles: `#tab-smart { flex-direction: column; align-items: center; }`
 
 ### Variable Substitution in Prompts
 Template variables use double curly braces:
@@ -129,7 +154,8 @@ Since this is a browser userscript, traditional unit tests don't apply. Testing 
    - Save
 3. **Navigate to** `https://qiye.aliyun.com/alimail/`
 4. **Configure:** Click Tampermonkey icon → "AI Reply Settings" → Enter API key
-5. **Test:** Open any email, click Reply, then click the AI button in toolbar
+5. **Test Custom Reply Tab:** Open any email, click Reply, click AI button, enter key points, generate reply
+6. **Test Smart Suggestions Tab:** Switch to Smart Suggestions tab, verify auto-generation of 9 suggestions
 
 ### Debug Tips
 - Open browser console (F12) to see errors
@@ -171,7 +197,13 @@ There is no build process. The `.user.js` file is distributed directly:
 ### Modifying Prompt Templates
 - Templates are stored in `CONFIG.defaults.promptTemplate`
 - Users can customize via Settings UI (saved to `GM_setValue`)
-- Default templates are restored by clearing the custom value
+- Default templates are restored by clicking the "Reset" link in settings
+
+### Modifying Smart Suggestions
+- Prompt template is in `buildSmartSuggestionsPrompt()`
+- Response parsing is in `parseSuggestions()`
+- Display order is in `displaySuggestions()` (currently: Neutral, Positive, Negative)
+- To change display order, reorder the category blocks in `displaySuggestions()`
 
 ## Common Issues
 
@@ -181,3 +213,4 @@ There is no build process. The `.user.js` file is distributed directly:
 | Theme not matching | CSS variable changes | Update `detectTheme()` logic |
 | Email not extracted | DOM structure changed | Update `extractOriginalEmail()` selectors |
 | API errors | Provider API changes | Update request format in `callLLM()` |
+| Smart suggestions not generating | Prompt format issues | Check `buildSmartSuggestionsPrompt()` format |
