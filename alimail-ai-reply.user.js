@@ -104,6 +104,18 @@ Reply:`,
         }
     };
 
+    const THEMES = {
+        black: { primary: '#3a3a3a', primaryHover: '#2a2a2a', buttonText: '#ffffff', copyBtn: '#4a4a4a', copyBtnHover: '#3a3a3a' },
+        silver: { primary: '#5f6368', primaryHover: '#494c50', buttonText: '#ffffff', copyBtn: '#1557b0', copyBtnHover: '#1557b0' },
+        blue: { primary: '#4a90d9', primaryHover: '#357abd', buttonText: '#ffffff', copyBtn: '#34a853', copyBtnHover: '#2d8e47' },
+        red: { primary: '#d9534f', primaryHover: '#c9302c', buttonText: '#ffffff', copyBtn: '#5cb85c', copyBtnHover: '#449d44' },
+        gold: { primary: '#c4a35a', primaryHover: '#a88b4a', buttonText: '#ffffff', copyBtn: '#4a90d9', copyBtnHover: '#357abd' },
+        green: { primary: '#3d8b5a', primaryHover: '#2d6b45', buttonText: '#ffffff', copyBtn: '#4a90d9', copyBtnHover: '#357abd' },
+        lakeBlue: { primary: '#3a8aa5', primaryHover: '#2d6f87', buttonText: '#ffffff', copyBtn: '#34a853', copyBtnHover: '#2d8e47' },
+        pink: { primary: '#d64d7a', primaryHover: '#b53a63', buttonText: '#ffffff', copyBtn: '#4a90d9', copyBtnHover: '#357abd' },
+        default: { primary: '#1a73e8', primaryHover: '#1557b0', buttonText: '#ffffff', copyBtn: '#fff', copyBtnHover: '#f8f9fa' }
+    };
+
     const Settings = {
         get(key) {
             const value = GM_getValue(key, null);
@@ -135,6 +147,40 @@ Reply:`,
             Object.keys(settings).forEach(key => this.set(key, settings[key]));
         }
     };
+
+    function detectTheme() {
+        const appBody = document.getElementById('app-body');
+        if (appBody) {
+            const bgColor = window.getComputedStyle(appBody).backgroundColor;
+            if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+                return matchColorToTheme(bgColor);
+            }
+        }
+        const headers = ['.header-container', '.mail-header', '.nav-header', '.top-bar'];
+        for (const sel of headers) {
+            const el = document.querySelector(sel);
+            if (el) {
+                const bg = window.getComputedStyle(el).backgroundColor;
+                if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+                    return matchColorToTheme(bg);
+                }
+            }
+        }
+        return 'default';
+    }
+
+    function matchColorToTheme(rgb) {
+        const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!m) return 'default';
+        const [_, r, g, b] = m.map(Number);
+        const brightness = (r + g + b) / 3;
+        if (brightness > 200) return 'silver';
+        return 'default';
+    }
+
+    function getCurrentThemeColors() {
+        return THEMES[detectTheme()] || THEMES.default;
+    }
 
     let generatedReplyText = '';
 
@@ -440,6 +486,7 @@ Example:
         });
         overlay.querySelector("#alimail-generate").addEventListener("click", generateReply);
         
+        applyTheme();
         return overlay;
     }
 
@@ -569,7 +616,20 @@ Example:
             overlay.classList.remove("visible");
         });
         
+        applyTheme();
         return overlay;
+    }
+
+    // Apply theme colors
+    function applyTheme() {
+        const colors = getCurrentThemeColors();
+        document.querySelectorAll(".alimail-header").forEach(h => h.style.background = colors.primary);
+        document.querySelectorAll(".alimail-button:not(.alimail-copy-btn):not(.secondary)").forEach(b => {
+            b.style.background = colors.primary;
+            b.style.color = "#fff";
+            b.onmouseenter = () => b.style.background = colors.primaryHover;
+            b.onmouseleave = () => b.style.background = colors.primary;
+        });
     }
 
     // Create toolbar button
@@ -606,6 +666,7 @@ Example:
             } else {
                 updateOriginalEmail();
                 overlay.classList.add("visible");
+                applyTheme();
             }
         });
 
@@ -968,6 +1029,7 @@ NEGATIVE PROFESSIONAL: [Reply text]`;
         GM_registerMenuCommand("AI Reply Settings", () => {
             const settingsOverlay = document.getElementById("alimail-settings-overlay") || createSettingsOverlay();
             settingsOverlay.classList.add("visible");
+            applyTheme();
         });
 
         createOverlay();
