@@ -228,8 +228,8 @@
         .alimail-settings-section-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e8eaed; }
         .alimail-form-group { margin-bottom: 16px; }
         .alimail-help-text { font-size: 12px; color: #5f6368; margin-top: 4px; }
-        .alimail-settings-footer { display: flex; gap: 12px; padding: 16px; border-top: 1px solid #e8eaed; background: #f8f9fa; }
-        .alimail-settings-footer .alimail-button { flex: 1; }
+        .alimail-settings-footer { display: flex; gap: 12px; padding: 16px; border-top: 1px solid #e8eaed; background: #f8f9fa; align-items: center; }
+        .alimail-settings-footer .alimail-button { flex: 1; display: flex; justify-content: center; align-items: center; }
         .alimail-settings-footer .alimail-button.secondary { background: #fff; color: #5f6368; border: 1px solid #dadce0; }
     `;
     GM_addStyle(styles);
