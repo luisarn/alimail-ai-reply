@@ -17,7 +17,7 @@
 
     const CONFIG = {
         defaults: {
-            provider: 'openai',
+            provider: 'dashscope',
             apiKey: '',
             model: 'gpt-4o-mini',
             apiUrl: '',
@@ -56,33 +56,50 @@ Reply:`,
             langMixed: 'Use the same language as the original email, or mix languages naturally if appropriate.'
         },
         providers: {
-            openai: {
-                name: 'OpenAI',
-                defaultUrl: 'https://api.openai.com/v1/chat/completions',
-                defaultModel: 'gpt-4o-mini',
-                models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-                needsApiKey: true
+            dashscope: {
+                name: 'Alibaba DashScope',
+                defaultUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+                defaultModel: 'qwen-max',
+                models: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-coder-plus'],
+                needsApiKey: true,
+                authHeader: 'Authorization',
+                authPrefix: 'Bearer '
             },
-            gemini: {
-                name: 'Google Gemini',
-                defaultUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
-                defaultModel: 'gemini-2.0-flash',
-                models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-pro'],
-                needsApiKey: true
+            deepseek: {
+                name: 'DeepSeek',
+                defaultUrl: 'https://api.deepseek.com/v1/chat/completions',
+                defaultModel: 'deepseek-chat',
+                models: ['deepseek-chat', 'deepseek-coder'],
+                needsApiKey: true,
+                authHeader: 'Authorization',
+                authPrefix: 'Bearer '
             },
-            anthropic: {
-                name: 'Anthropic Claude',
-                defaultUrl: 'https://api.anthropic.com/v1/messages',
-                defaultModel: 'claude-3-5-sonnet-20241022',
-                models: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'],
-                needsApiKey: true
+            kimi: {
+                name: 'Moonshot Kimi',
+                defaultUrl: 'https://api.moonshot.cn/v1/chat/completions',
+                defaultModel: 'moonshot-v1-8k',
+                models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],
+                needsApiKey: true,
+                authHeader: 'Authorization',
+                authPrefix: 'Bearer '
+            },
+            minimax: {
+                name: 'MiniMax',
+                defaultUrl: 'https://api.minimax.chat/v1/text/chatcompletion_v2',
+                defaultModel: 'abab6.5s-chat',
+                models: ['abab6.5s-chat', 'abab6.5-chat', 'abab5.5s-chat', 'abab5.5-chat'],
+                needsApiKey: true,
+                authHeader: 'Authorization',
+                authPrefix: 'Bearer '
             },
             custom: {
                 name: 'Custom/OpenAI-Compatible',
                 defaultUrl: 'http://localhost:8000/v1/chat/completions',
                 defaultModel: 'gpt-4o-mini',
                 models: [],
-                needsApiKey: false
+                needsApiKey: false,
+                authHeader: 'Authorization',
+                authPrefix: 'Bearer '
             }
         }
     };
@@ -176,7 +193,7 @@ Reply:`,
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 14px; display: none; border: 1px solid #e0e0e0; overflow: hidden;
         }
-        #alimail-reply-overlay { width: 95vw; max-width: 900px; height: 85vh; max-height: 610px; }
+        #alimail-reply-overlay { width: 95vw; max-width: 900px; height: 85vh; max-height: 660px; }
         #alimail-settings-overlay { width: 90vw; max-width: 500px; max-height: 90vh; }
         @media (max-width: 768px) {
             #alimail-reply-overlay, #alimail-settings-overlay {
@@ -324,74 +341,55 @@ Reply:`,
 
         const apiUrl = settings.apiUrl || provider.defaultUrl;
         
-        if (settings.provider === "openai" || settings.provider === "custom") {
-            const response = await fetch(apiUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + settings.apiKey
-                },
-                body: JSON.stringify({
-                    model: settings.model || provider.defaultModel,
-                    messages: [{ role: "user", content: prompt }],
-                    temperature: settings.temperature,
-                    max_tokens: settings.maxTokens
-                })
+        // Build headers
+        const headers = {
+            "Content-Type": "application/json"
+        };
+        if (provider.needsApiKey && settings.apiKey) {
+            headers[provider.authHeader] = provider.authPrefix + settings.apiKey;
+        }
+
+        // Build request body
+        let body;
+        if (settings.provider === "minimax") {
+            // MiniMax uses a slightly different format
+            body = JSON.stringify({
+                model: settings.model || provider.defaultModel,
+                messages: [{ role: "user", content: prompt }],
+                temperature: settings.temperature,
+                max_tokens: settings.maxTokens
             });
-            if (!response.ok) {
-                const err = await response.text();
-                throw new Error("API error: " + response.status + " - " + err);
-            }
-            const data = await response.json();
+        } else {
+            // OpenAI-compatible format (DashScope, DeepSeek, Kimi, Custom)
+            body = JSON.stringify({
+                model: settings.model || provider.defaultModel,
+                messages: [{ role: "user", content: prompt }],
+                temperature: settings.temperature,
+                max_tokens: settings.maxTokens
+            });
+        }
+
+        const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: headers,
+            body: body
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error("API error: " + response.status + " - " + err);
+        }
+
+        const data = await response.json();
+
+        // Parse response based on provider
+        if (settings.provider === "minimax") {
+            // MiniMax response format
+            return data.choices[0].message.content;
+        } else {
+            // Standard OpenAI-compatible format
             return data.choices[0].message.content;
         }
-        
-        else if (settings.provider === "gemini") {
-            const modelName = settings.model || provider.defaultModel;
-            const url = apiUrl + "/" + modelName + ":generateContent?key=" + settings.apiKey;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: settings.temperature,
-                        maxOutputTokens: settings.maxTokens
-                    }
-                })
-            });
-            if (!response.ok) {
-                const err = await response.text();
-                throw new Error("API error: " + response.status + " - " + err);
-            }
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
-        }
-        
-        else if (settings.provider === "anthropic") {
-            const response = await fetch(apiUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": settings.apiKey,
-                    "anthropic-version": "2023-06-01"
-                },
-                body: JSON.stringify({
-                    model: settings.model || provider.defaultModel,
-                    messages: [{ role: "user", content: prompt }],
-                    max_tokens: settings.maxTokens,
-                    temperature: settings.temperature
-                })
-            });
-            if (!response.ok) {
-                const err = await response.text();
-                throw new Error("API error: " + response.status + " - " + err);
-            }
-            const data = await response.json();
-            return data.content[0].text;
-        }
-        
-        throw new Error("Unsupported provider: " + settings.provider);
     }
 
     // Create main overlay
@@ -510,9 +508,10 @@ Example:
                     <div class="alimail-form-group">
                         <div class="alimail-label">Provider</div>
                         <select class="alimail-select" id="settings-provider">
-                            <option value="openai" ${settings.provider === "openai" ? "selected" : ""}>OpenAI</option>
-                            <option value="gemini" ${settings.provider === "gemini" ? "selected" : ""}>Google Gemini</option>
-                            <option value="anthropic" ${settings.provider === "anthropic" ? "selected" : ""}>Anthropic Claude</option>
+                            <option value="dashscope" ${settings.provider === "dashscope" ? "selected" : ""}>Alibaba DashScope</option>
+                            <option value="deepseek" ${settings.provider === "deepseek" ? "selected" : ""}>DeepSeek</option>
+                            <option value="kimi" ${settings.provider === "kimi" ? "selected" : ""}>Moonshot Kimi</option>
+                            <option value="minimax" ${settings.provider === "minimax" ? "selected" : ""}>MiniMax</option>
                             <option value="custom" ${settings.provider === "custom" ? "selected" : ""}>Custom/OpenAI-Compatible</option>
                         </select>
                     </div>

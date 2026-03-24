@@ -6,9 +6,10 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 
 - **No Backend Required**: Direct API calls to LLM providers from the browser
 - **Multiple AI Providers Supported**:
-  - OpenAI (GPT-4, GPT-4o, GPT-3.5-turbo)
-  - Google Gemini (2.0 Flash, 1.5 Pro, etc.)
-  - Anthropic Claude (3.5 Sonnet, etc.)
+  - Alibaba DashScope (Qwen series)
+  - DeepSeek (deepseek-chat, deepseek-coder)
+  - Moonshot Kimi (moonshot-v1 series)
+  - MiniMax (abab series)
   - Custom/OpenAI-compatible endpoints
 - **Theme-Aware UI**: Automatically matches Alimail's color theme (8 themes supported)
 - **Toolbar Integration**: AI button appears directly in Alimail's compose toolbar
@@ -49,20 +50,29 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 
 ## Getting API Keys
 
-### OpenAI
-1. Go to [OpenAI Platform](https://platform.openai.com/)
-2. Sign in and go to API Keys
-3. Create a new secret key
+### Alibaba DashScope
+1. Go to [Alibaba Cloud DashScope](https://dashscope.aliyun.com/)
+2. Sign in with your Alibaba Cloud account
+3. Navigate to API Key Management
+4. Create a new API key
 
-### Google Gemini
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Create a new API key
+### DeepSeek
+1. Go to [DeepSeek Platform](https://platform.deepseek.com/)
+2. Sign up for an account
+3. Go to API Keys section
+4. Create a new API key
 
-### Anthropic Claude
-1. Go to [Anthropic Console](https://console.anthropic.com/)
-2. Sign up for API access
-3. Generate an API key
+### Moonshot Kimi
+1. Go to [Moonshot Platform](https://platform.moonshot.cn/)
+2. Sign up for an account
+3. Navigate to API Key Management
+4. Create a new API key
+
+### MiniMax
+1. Go to [MiniMax Platform](https://www.minimaxi.com/)
+2. Sign up for a developer account
+3. Access the API Keys section
+4. Generate a new API key
 
 ## Usage
 
