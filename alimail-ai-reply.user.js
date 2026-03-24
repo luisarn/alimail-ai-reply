@@ -41,8 +41,8 @@ Please write a complete, professional email reply that:
 1. Addresses the sender appropriately
 2. Incorporates all the key points provided
 3. Maintains proper email etiquette
-4. Has a clear subject line reference if applicable
-5. Includes an appropriate greeting and closing
+4. Includes an appropriate greeting and closing
+5. Do NOT include a subject line
 6. Do NOT include a signature (name, title, contact info, etc.)
 
 Reply:`,
@@ -414,9 +414,9 @@ Example:
                             <div class="alimail-col">
                                 <div class="alimail-label">Tone</div>
                                 <select class="alimail-select" id="alimail-tone">
-                                    <option value="professional">Professional</option>
-                                    <option value="friendly">Friendly</option>
                                     <option value="concise">Concise</option>
+                                    <option value="friendly">Friendly</option>
+                                    <option value="professional">Professional</option>
                                     <option value="detailed">Detailed</option>
                                 </select>
                             </div>
@@ -497,7 +497,10 @@ Example:
                     <div class="alimail-settings-section-title">Prompt Templates</div>
                     <div class="alimail-form-group">
                         <div class="alimail-label">Main Prompt Template</div>
-                        <textarea class="alimail-textarea large" id="settings-prompt-template" placeholder="${CONFIG.defaults.promptTemplate.substring(0, 50)}...">${settings.promptTemplate || ""}</textarea>
+                        <div style="position: relative;">
+                            <textarea class="alimail-textarea large" id="settings-prompt-template" placeholder="${CONFIG.defaults.promptTemplate.substring(0, 50)}...">${settings.promptTemplate || ""}</textarea>
+                            <a href="#" id="settings-reset-prompt" style="position: absolute; bottom: 5px; right: 8px; font-size: 12px; color: #1a73e8; text-decoration: none;">Reset</a>
+                        </div>
                         <div class="alimail-help-text">Available variables: {{TONE_INSTRUCTION}}, {{LANGUAGE_INSTRUCTION}}, {{ORIGINAL_EMAIL}}, {{USER_INPUT}}</div>
                     </div>
                     <details>
@@ -549,6 +552,12 @@ Example:
 
         overlay.querySelector(".alimail-close").addEventListener("click", () => overlay.classList.remove("visible"));
         overlay.querySelector("#settings-cancel").addEventListener("click", () => overlay.classList.remove("visible"));
+        overlay.querySelector("#settings-reset-prompt").addEventListener("click", (e) => {
+            e.preventDefault();
+            if (confirm("Reset prompt template to default? This will overwrite your current changes.")) {
+                document.getElementById("settings-prompt-template").value = CONFIG.defaults.promptTemplate;
+            }
+        });
         overlay.querySelector("#settings-save").addEventListener("click", () => {
             Settings.saveAll({
                 provider: document.getElementById("settings-provider").value,
