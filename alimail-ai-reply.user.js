@@ -181,6 +181,7 @@
         }
         .alimail-textarea { min-height: 80px; resize: vertical; font-family: inherit; }
         .alimail-textarea.large { min-height: 120px; }
+        .alimail-select { margin-bottom: 16px; }
         .alimail-row { display: flex; gap: 12px; }
         .alimail-col { flex: 1; }
         .alimail-original-box {
@@ -197,13 +198,13 @@
         .alimail-button:hover { box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .alimail-button:active { transform: translateY(1px); }
         .alimail-button:disabled { opacity: 0.6; cursor: not-allowed; }
-        .alimail-generate-btn { width: 100%; margin-top: auto; padding: 12px; display: flex; justify-content: center; }
+        .alimail-generate-btn { width: 100%; margin-top: auto; padding: 12px; display: flex; justify-content: center; align-items: center; }
         .alimail-copy-btn { background: #fff; color: #202124; border: 1px solid #dadce0; }
         .alimail-copy-btn:hover:not(:disabled) { background: #f8f9fa; }
         .alimail-copy-btn.copied { background: #34a853; color: #fff; border-color: #34a853; }
         .alimail-insert-btn { background: rgb(239, 73, 68) !important; }
         .alimail-insert-btn:hover:not(:disabled) { background: rgb(220, 60, 55) !important; }
-        .alimail-button-row { display: flex; gap: 8px; margin-top: 16px; }
+        .alimail-button-row { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
         .alimail-button-row .alimail-button { flex: 1; margin: 0; }
         .alimail-result-box {
             background: #f8f9fa; border: 1px solid #e8eaed; border-radius: 4px;
