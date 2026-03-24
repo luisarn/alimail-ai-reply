@@ -281,7 +281,7 @@ Reply:`,
         .alimail-suggestions-container { display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow-y: auto; }
         .alimail-suggestion-item { padding: 12px 16px; background: #fff; border: 1px solid #e8eaed; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: left; font-size: 14px; line-height: 1.5; }
         .alimail-suggestion-item:hover { border-color: #1a73e8; background: rgba(26,115,232,0.04); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .alimail-suggestion-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #5f6368; }
+        .alimail-suggestion-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; color: #5f6368; text-align: center; }
         .alimail-suggestion-loading::before { content: ""; width: 24px; height: 24px; border: 2px solid #e8eaed; border-top-color: currentColor; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px; }
         .alimail-analyze-btn { margin: 16px; }
         .alimail-suggestion-category { font-size: 12px; font-weight: 600; color: #5f6368; text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 16px 4px; }
@@ -743,55 +743,80 @@ Example:
         const lang = document.getElementById("alimail-language")?.value || "chinese";
         const langInstruction = languageInstructions[lang] || languageInstructions.chinese;
 
-        return `You are a professional email assistant. Analyze the following email and generate 3 different reply suggestions.
+        return `You are a professional email assistant. Analyze the following email and generate 9 different reply suggestions (3 for each attitude category, using different tones).
 
 ${langInstruction}
-
-Tone: ${settings.toneConcise}
 
 Original email:
 ---
 ${originalEmail}
 ---
 
-Generate 3 different reply options with different attitudes:
+Generate 9 reply options organized by attitude and tone:
 
-1. POSITIVE: Accept the request or express willingness to help. Use phrases like "Will do", "Will assist", "Will participate", "Happy to help", "Sure, I can", etc.
+**POSITIVE** (Accept the request, express willingness to help):
+- POSITIVE CONCISE: Brief and to-the-point acceptance
+- POSITIVE FRIENDLY: Warm, friendly acceptance while maintaining professionalism
+- POSITIVE PROFESSIONAL: Formal, professional acceptance
 
-2. NEUTRAL: Don't promise anything specific. Use a reply that acknowledges the email without making a decision or commitment. Be polite but non-committal.
+**NEUTRAL** (Don't promise anything, acknowledge without commitment):
+- NEUTRAL CONCISE: Brief, non-committal acknowledgment
+- NEUTRAL FRIENDLY: Warm but non-committal response
+- NEUTRAL PROFESSIONAL: Formal acknowledgment without decision
 
-3. NEGATIVE: Decline the request or express inability to help. Use phrases like "Won't be able to", "Can't assist", "Unable to participate", "Unfortunately, I cannot", etc. Be polite but firm in deflecting the request.
+**NEGATIVE** (Decline the request, express inability to help):
+- NEGATIVE CONCISE: Brief, polite rejection
+- NEGATIVE FRIENDLY: Warm but firm refusal
+- NEGATIVE PROFESSIONAL: Formal, professional decline
 
-Each option should be a complete, ready-to-send reply that:
-- Is concise and to the point
-- Is appropriate for business/professional communication
+Each reply should be:
+- A complete, ready-to-send reply
+- Appropriate for business/professional communication
 - Does NOT include a subject line
 - Does NOT include a signature (name, title, contact info, etc.)
 
 Format your response exactly as follows (separated by "---SPLIT---"):
 
-POSITIVE: [Positive reply option]
+POSITIVE CONCISE: [Reply text]
 ---SPLIT---
-NEUTRAL: [Neutral reply option]
+POSITIVE FRIENDLY: [Reply text]
 ---SPLIT---
-NEGATIVE: [Negative reply option]`;
+POSITIVE PROFESSIONAL: [Reply text]
+---SPLIT---
+NEUTRAL CONCISE: [Reply text]
+---SPLIT---
+NEUTRAL FRIENDLY: [Reply text]
+---SPLIT---
+NEUTRAL PROFESSIONAL: [Reply text]
+---SPLIT---
+NEGATIVE CONCISE: [Reply text]
+---SPLIT---
+NEGATIVE FRIENDLY: [Reply text]
+---SPLIT---
+NEGATIVE PROFESSIONAL: [Reply text]`;
     }
 
-    // Parse LLM response into categorized suggestions
+    // Parse LLM response into categorized suggestions with tones
     function parseSuggestions(response) {
-        const categories = { positive: null, neutral: null, negative: null };
+        const categories = {
+            positive: { concise: null, friendly: null, professional: null },
+            neutral: { concise: null, friendly: null, professional: null },
+            negative: { concise: null, friendly: null, professional: null }
+        };
         
         // Split by separator and parse each section
         const parts = response.split(/---SPLIT---/i);
         
         parts.forEach(part => {
             const trimmed = part.trim();
-            if (trimmed.toUpperCase().startsWith('POSITIVE:')) {
-                categories.positive = trimmed.replace(/^POSITIVE:\s*/i, '').trim();
-            } else if (trimmed.toUpperCase().startsWith('NEUTRAL:')) {
-                categories.neutral = trimmed.replace(/^NEUTRAL:\s*/i, '').trim();
-            } else if (trimmed.toUpperCase().startsWith('NEGATIVE:')) {
-                categories.negative = trimmed.replace(/^NEGATIVE:\s*/i, '').trim();
+            const match = trimmed.match(/^([A-Z]+)\s+([A-Z]+):\s*(.+)$/is);
+            if (match) {
+                const [, attitude, tone, text] = match;
+                const attKey = attitude.toLowerCase();
+                const toneKey = tone.toLowerCase();
+                if (categories[attKey] && categories[attKey][toneKey] !== undefined) {
+                    categories[attKey][toneKey] = text.trim();
+                }
             }
         });
         
@@ -801,26 +826,49 @@ NEGATIVE: [Negative reply option]`;
     // Display categorized suggestions as clickable items
     function displaySuggestions(categories) {
         const container = document.getElementById("alimail-suggestions-container");
-        if (!categories || (!categories.positive && !categories.neutral && !categories.negative)) {
+        const hasAny = categories.positive.concise || categories.positive.friendly || categories.positive.professional ||
+                       categories.neutral.concise || categories.neutral.friendly || categories.neutral.professional ||
+                       categories.negative.concise || categories.negative.friendly || categories.negative.professional;
+        
+        if (!hasAny) {
             container.innerHTML = '<div class="alimail-error" style="padding: 40px;">No suggestions generated. Please try again.</div>';
             return;
         }
 
         let html = '';
+        const toneLabels = { concise: 'Concise', friendly: 'Friendly', professional: 'Professional' };
         
-        if (categories.positive) {
+        // Positive category
+        const hasPositive = categories.positive.concise || categories.positive.friendly || categories.positive.professional;
+        if (hasPositive) {
             html += `<div class="alimail-suggestion-category">Positive - Will Do / Accept</div>`;
-            html += `<button class="alimail-suggestion-item" data-type="positive">${escapeHtml(categories.positive)}</button>`;
+            ['concise', 'friendly', 'professional'].forEach(tone => {
+                if (categories.positive[tone]) {
+                    html += `<button class="alimail-suggestion-item" data-category="positive" data-tone="${tone}"><strong>${toneLabels[tone]}:</strong> ${escapeHtml(categories.positive[tone])}</button>`;
+                }
+            });
         }
         
-        if (categories.neutral) {
+        // Neutral category
+        const hasNeutral = categories.neutral.concise || categories.neutral.friendly || categories.neutral.professional;
+        if (hasNeutral) {
             html += `<div class="alimail-suggestion-category">Neutral - No Decision</div>`;
-            html += `<button class="alimail-suggestion-item" data-type="neutral">${escapeHtml(categories.neutral)}</button>`;
+            ['concise', 'friendly', 'professional'].forEach(tone => {
+                if (categories.neutral[tone]) {
+                    html += `<button class="alimail-suggestion-item" data-category="neutral" data-tone="${tone}"><strong>${toneLabels[tone]}:</strong> ${escapeHtml(categories.neutral[tone])}</button>`;
+                }
+            });
         }
         
-        if (categories.negative) {
+        // Negative category
+        const hasNegative = categories.negative.concise || categories.negative.friendly || categories.negative.professional;
+        if (hasNegative) {
             html += `<div class="alimail-suggestion-category">Negative - Won't Do / Decline</div>`;
-            html += `<button class="alimail-suggestion-item" data-type="negative">${escapeHtml(categories.negative)}</button>`;
+            ['concise', 'friendly', 'professional'].forEach(tone => {
+                if (categories.negative[tone]) {
+                    html += `<button class="alimail-suggestion-item" data-category="negative" data-tone="${tone}"><strong>${toneLabels[tone]}:</strong> ${escapeHtml(categories.negative[tone])}</button>`;
+                }
+            });
         }
         
         container.innerHTML = html;
@@ -828,8 +876,9 @@ NEGATIVE: [Negative reply option]`;
         // Add click handlers
         container.querySelectorAll('.alimail-suggestion-item').forEach(btn => {
             btn.addEventListener('click', function() {
-                const type = this.dataset.type;
-                const text = categories[type];
+                const category = this.dataset.category;
+                const tone = this.dataset.tone;
+                const text = categories[category][tone];
                 const success = insertIntoEmailBody(text);
                 
                 // Visual feedback
