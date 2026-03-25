@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Alimail AI Reply Assistant (Backend-Free)
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.0.1
 // @description  Auto-generate professional email replies for Alimail webmail - Pure Tampermonkey, no backend required
 // @author       luisarn
 // @match        https://qiye.aliyun.com/alimail/*
