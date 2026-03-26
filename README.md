@@ -10,8 +10,9 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
   - Google Gemini (2.0 Flash, 1.5 Pro, etc.)
   - Anthropic Claude (3.5 Sonnet, etc.)
   - Custom/OpenAI-compatible endpoints
+- **🎤 Voice Input**: Speak your reply ideas and get AI-generated responses
 - **Theme-Aware UI**: Automatically matches Alimail's color theme (8 themes supported)
-- **Toolbar Integration**: AI button appears directly in Alimail's compose toolbar
+- **Toolbar Integration**: AI and Voice buttons appear directly in Alimail's compose toolbar
 - **2-Column Layout**: View original email and compose reply side by side
 - **One-Click Insert**: Insert generated reply directly into the email body
 - **Multi-Language Support**: Traditional Chinese, English, Portuguese, or Mixed
@@ -46,6 +47,16 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
    - **API Key**: Enter your API key from the provider
    - **Model**: The model to use (e.g., `gpt-4o-mini`, `gemini-2.0-flash`)
    - **Custom API URL** (optional): For proxy or custom endpoints
+
+#### Voice Input Configuration (Optional)
+To enable voice input, configure these settings:
+   - **Enable Voice Input**: Check to enable the MIC button
+   - **ASR Provider**: OpenAI Whisper or custom endpoint
+   - **ASR API Key**: Can use the same key as LLM if using OpenAI
+   - **ASR Model**: `whisper-1` for OpenAI
+   - **ASR Language**: Auto-detect or specify a language
+   - **Voice Reply Defaults**: Set default tone and language for voice-generated replies
+
 5. Click "Save Settings"
 
 ## Getting API Keys
@@ -65,7 +76,14 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 2. Sign up for API access
 3. Generate an API key
 
+### Voice Recognition (ASR)
+For voice input, you can use:
+- **OpenAI Whisper**: Use the same OpenAI API key from above. The Whisper API is included with your OpenAI account.
+- **Custom ASR**: Configure your own ASR endpoint that accepts audio files and returns transcriptions in OpenAI-compatible format.
+
 ## Usage
+
+### AI Reply Assistant
 
 1. Open Alimail Webmail and click "Reply" on any email
 2. Click the **AI** button in the toolbar (next to the subscript button)
@@ -82,6 +100,23 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 6. Select **Language** (Traditional Chinese/English/Portuguese/Mixed)
 7. Click **Generate Reply**
 8. Click **Insert to Email** to add directly to the compose area, or **Copy** to clipboard
+
+### 🎤 Voice Input
+
+Quickly compose replies by speaking instead of typing:
+
+1. Open Alimail Webmail and click "Reply" on any email
+2. Click the **MIC** (microphone) button in the toolbar
+3. The voice input popup will appear and **automatically start recording**
+4. Speak your reply content naturally (e.g., "Tell them I need more time and suggest next Monday")
+5. Click **Complete** when finished, or **Cancel** to discard
+6. The speech will be transcribed and sent to the AI to generate a complete reply
+7. The generated reply is automatically inserted into your email
+
+**Voice Input Requirements:**
+- Microphone permission must be granted to the browser
+- ASR (Automatic Speech Recognition) API key configured in settings
+- Works best in a quiet environment
 
 ## Troubleshooting
 
@@ -103,11 +138,25 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 - The UI automatically detects Alimail's theme
 - If detection fails, it falls back to the default blue theme
 
+### Voice Input Not Working
+- Ensure microphone permission is granted to the browser
+- Check that Voice Input is enabled in Settings
+- Verify your ASR API key is configured correctly
+- Make sure you're using HTTPS (microphone access requires secure context)
+- Try refreshing the page after granting microphone permissions
+
+### "No speech recognized" Error
+- Speak clearly and close to the microphone
+- Check that your ASR API key has sufficient credits/quota
+- Try reducing background noise
+
 ## Privacy & Security
 
 - Your API key is stored locally using Tampermonkey's `GM_setValue`/`GM_getValue`
-- No data is sent to any server other than your chosen LLM provider
+- No data is sent to any server other than your chosen LLM/ASR provider
 - Email content is only sent to the LLM API for generating replies
+- Voice recordings are sent directly to your configured ASR provider (e.g., OpenAI) and are not stored locally
+- Audio is captured locally in your browser and never passes through any intermediate server
 
 ## Comparison with Backend Version
 
@@ -118,6 +167,7 @@ A pure Tampermonkey userscript that generates professional email replies in Alim
 | API Key Storage | Local (Tampermonkey) | Server environment |
 | Network | Direct to LLM provider | Through your server |
 | Cost | Only LLM API costs | LLM API + server costs |
+| Voice Input | Built-in via browser | Not available |
 
 ## License
 
