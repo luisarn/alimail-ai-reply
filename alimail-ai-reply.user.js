@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Alimail AI Reply Assistant (Backend-Free)
 // @namespace    http://tampermonkey.net/
-// @version      3.1
+// @version      3.2
 // @description  Auto-generate professional email replies for Alimail webmail - Pure Tampermonkey, no backend required
 // @author       luisarn
 // @match        https://qiye.aliyun.com/alimail/*
@@ -54,6 +54,9 @@ Reply:`,
             langEnglish: 'Write the reply in English.',
             langPortuguese: 'Write the reply in Portuguese.',
             langMixed: 'Use the same language as the original email, or mix languages naturally if appropriate.',
+            // Humanize Settings
+            humanizeOutput: false,
+            humanizeInstruction: 'Write like a real human - avoid AI clichés like "I hope this email finds you well", "I\'m writing to", or overly flowery language. Use natural contractions (I\'m, don\'t, we\'ll) and vary sentence length. Be direct and conversational rather than robotic or formulaic.',
             // ASR Settings
             asrEnabled: true,
             asrProvider: 'openai',
@@ -133,7 +136,9 @@ Reply:`,
                 langChinese: this.get('langChinese'),
                 langEnglish: this.get('langEnglish'),
                 langPortuguese: this.get('langPortuguese'),
-                langMixed: this.get('langMixed')
+                langMixed: this.get('langMixed'),
+                humanizeOutput: this.get('humanizeOutput'),
+                humanizeInstruction: this.get('humanizeInstruction')
             };
         },
         getAsrAll() {
@@ -370,8 +375,10 @@ Reply:`,
     GM_addStyle(styles);
 
     // Build prompt for LLM
-    function buildPrompt(originalEmail, userInput, tone, language) {
+    function buildPrompt(originalEmail, userInput, tone, language, humanize = null) {
         const settings = Settings.getAll();
+        // Use passed humanize value if provided, otherwise use setting
+        const shouldHumanize = humanize !== null ? humanize : settings.humanizeOutput;
         const toneInstructions = {
             professional: settings.toneProfessional,
             friendly: settings.toneFriendly,
@@ -385,11 +392,18 @@ Reply:`,
             mixed: settings.langMixed
         };
         
-        return settings.promptTemplate
+        let prompt = settings.promptTemplate
             .replace('{{TONE_INSTRUCTION}}', toneInstructions[tone] || toneInstructions.professional)
             .replace('{{LANGUAGE_INSTRUCTION}}', languageInstructions[language] || languageInstructions.chinese)
             .replace('{{ORIGINAL_EMAIL}}', originalEmail || '(No original email content)')
             .replace('{{USER_INPUT}}', userInput);
+
+        // Append humanize instruction if enabled
+        if (shouldHumanize) {
+            prompt += '\n\n' + (settings.humanizeInstruction || CONFIG.defaults.humanizeInstruction);
+        }
+
+        return prompt;
     }
 
     // Call LLM API
@@ -528,6 +542,12 @@ Example:
                                 </select>
                             </div>
                         </div>
+                        <div class="alimail-section">
+                            <label class="alimail-checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #5f6368;">
+                                <input type="checkbox" id="alimail-humanize" style="cursor: pointer;">
+                                <span>Humanize output (less AI-sounding)</span>
+                            </label>
+                        </div>
                         <button class="alimail-button alimail-generate-btn" id="alimail-generate">Generate Reply</button>
                     </div>
                 </div>
@@ -566,6 +586,12 @@ Example:
             if (settingsOverlay) settingsOverlay.classList.add("visible");
         });
         overlay.querySelector("#alimail-generate").addEventListener("click", generateReply);
+        
+        // Set humanize checkbox default state
+        const humanizeCheckbox = overlay.querySelector("#alimail-humanize");
+        if (humanizeCheckbox) {
+            humanizeCheckbox.checked = Settings.get('humanizeOutput');
+        }
         
         applyTheme();
         return overlay;
@@ -658,6 +684,21 @@ Example:
                             <input type="text" class="alimail-input" id="settings-lang-mixed" value="${settings.langMixed || ""}">
                         </div>
                     </details>
+                </div>
+                <div class="alimail-settings-section">
+                    <div class="alimail-settings-section-title">✨ Humanize Output</div>
+                    <div class="alimail-form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="settings-humanize-default" ${settings.humanizeOutput ? "checked" : ""}>
+                            <span>Enable humanize by default</span>
+                        </label>
+                        <div class="alimail-help-text">When enabled, the "Humanize output" checkbox will be checked by default when opening the AI Reply popup.</div>
+                    </div>
+                    <div class="alimail-form-group">
+                        <div class="alimail-label">Humanize Instruction</div>
+                        <textarea class="alimail-textarea" id="settings-humanize-instruction" placeholder="${CONFIG.defaults.humanizeInstruction.substring(0, 50)}...">${settings.humanizeInstruction || ""}</textarea>
+                        <div class="alimail-help-text">Instruction appended to the prompt when humanize is enabled. Customize to adjust the writing style.</div>
+                    </div>
                 </div>
                 <div class="alimail-settings-section">
                     <div class="alimail-settings-section-title">🎤 Voice Input (ASR) Settings</div>
@@ -760,6 +801,9 @@ Example:
                 langEnglish: document.getElementById("settings-lang-english").value,
                 langPortuguese: document.getElementById("settings-lang-portuguese").value,
                 langMixed: document.getElementById("settings-lang-mixed").value,
+                // Humanize Settings
+                humanizeOutput: document.getElementById("settings-humanize-default").checked,
+                humanizeInstruction: document.getElementById("settings-humanize-instruction").value,
                 // ASR Settings
                 asrEnabled: document.getElementById("settings-asr-enabled").checked,
                 asrProvider: document.getElementById("settings-asr-provider").value,
@@ -1434,6 +1478,8 @@ NEGATIVE PROFESSIONAL: [Reply text]`;
         const userInput = document.getElementById("alimail-user-input").value.trim();
         const tone = document.getElementById("alimail-tone").value;
         const language = document.getElementById("alimail-language").value;
+        const humanizeCheckbox = document.getElementById("alimail-humanize");
+        const humanize = humanizeCheckbox ? humanizeCheckbox.checked : false;
         const originalEl = document.getElementById("alimail-original-text");
         const originalEmail = originalEl?.dataset.fullText || originalEl?.textContent || "";
         const resultContainer = document.getElementById("alimail-result-container");
@@ -1449,7 +1495,7 @@ NEGATIVE PROFESSIONAL: [Reply text]`;
         resultContainer.innerHTML = '<div class="alimail-loading">Generating your reply...</div>';
 
         try {
-            const prompt = buildPrompt(originalEmail, userInput, tone, language);
+            const prompt = buildPrompt(originalEmail, userInput, tone, language, humanize);
             generatedReplyText = await callLLM(prompt);
             showResult(generatedReplyText);
         } catch (error) {
