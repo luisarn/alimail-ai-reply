@@ -204,7 +204,7 @@ Quickly compose replies by speaking instead of typing:
 
 ## 📜 License
 
-MIT License 📄
+This project is licensed under the GPL-3.0 License. 📄
 
 ---
 
