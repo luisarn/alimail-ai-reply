@@ -9,6 +9,7 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
+// @grant        GM_xmlhttpRequest
 // @run-at       document-end
 // @updateURL    https://github.com/luisarn/alimail-ai-reply/raw/refs/heads/main/alimail-ai-reply.user.js
 // @downloadURL  https://github.com/luisarn/alimail-ai-reply/raw/refs/heads/main/alimail-ai-reply.user.js
@@ -1434,7 +1435,7 @@ Example:
     }
   }
 
-  // Call ASR API
+  // Call ASR API using GM_xmlhttpRequest to bypass CORS
   async function callAsrApi(audioBlob, asrSettings) {
     const apiUrl = asrSettings.asrApiUrl || 'https://api.openai.com/v1/audio/transcriptions';
     const apiKey = asrSettings.asrApiKey;
@@ -1453,21 +1454,76 @@ Example:
     }
     formData.append('response_format', 'json');
 
-    const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: formData
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`ASR API error: ${response.status} - ${errorText}`);
+    // Convert FormData to blob for GM_xmlhttpRequest
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
+    
+    // Build multipart form data manually
+    const encoder = new TextEncoder();
+    const parts = [];
+    
+    // Add file part
+    parts.push(encoder.encode(`--${boundary}\r\n`));
+    parts.push(encoder.encode(`Content-Disposition: form-data; name="file"; filename="recording.webm"\r\n`));
+    parts.push(encoder.encode(`Content-Type: audio/webm\r\n\r\n`));
+    parts.push(new Uint8Array(arrayBuffer));
+    parts.push(encoder.encode(`\r\n`));
+    
+    // Add model part
+    parts.push(encoder.encode(`--${boundary}\r\n`));
+    parts.push(encoder.encode(`Content-Disposition: form-data; name="model"\r\n\r\n`));
+    parts.push(encoder.encode(`${model}\r\n`));
+    
+    // Add language part if not auto
+    if (language !== 'auto') {
+        parts.push(encoder.encode(`--${boundary}\r\n`));
+        parts.push(encoder.encode(`Content-Disposition: form-data; name="language"\r\n\r\n`));
+        parts.push(encoder.encode(`${language}\r\n`));
+    }
+    
+    // Add response_format part
+    parts.push(encoder.encode(`--${boundary}\r\n`));
+    parts.push(encoder.encode(`Content-Disposition: form-data; name="response_format"\r\n\r\n`));
+    parts.push(encoder.encode(`json\r\n`));
+    
+    // Add final boundary
+    parts.push(encoder.encode(`--${boundary}--\r\n`));
+    
+    // Combine all parts
+    const totalLength = parts.reduce((acc, part) => acc + part.length, 0);
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const part of parts) {
+        combined.set(part, offset);
+        offset += part.length;
     }
 
-    const data = await response.json();
-    return data.text || data.transcript || '';
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: apiUrl,
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': `multipart/form-data; boundary=${boundary}`
+            },
+            data: combined,
+            responseType: 'json',
+            onload: (response) => {
+                if (response.status >= 200 && response.status < 300) {
+                    const data = response.response;
+                    resolve(data.text || data.transcript || '');
+                } else {
+                    reject(new Error(`ASR API error: ${response.status} - ${response.responseText}`));
+                }
+            },
+            onerror: (error) => {
+                reject(new Error(`ASR request failed: ${error.statusText || 'Network error'}`));
+            },
+            ontimeout: () => {
+                reject(new Error('ASR request timed out'));
+            }
+        });
+    });
   }
 
   // Generate email reply from voice transcript
